@@ -54,7 +54,6 @@ All app settings (alias slots, schedule, dry-run, Duo host) are template paramet
 | Parameter | Default | Notes |
 |-----------|---------|-------|
 | `functionAppName` | `duo-oid-sync-<unique>` | Globally-unique app name. |
-| `location` | resource group location | Azure region. |
 | `duoIntegrationKey` | (required, secure) | Duo Admin API ikey -> Key Vault secret. |
 | `duoSecretKey` | (required, secure) | Duo Admin API skey -> Key Vault secret. |
 | `duoApiHost` | (required) | `api-XXXXXXXX.duosecurity.com` (no scheme). |

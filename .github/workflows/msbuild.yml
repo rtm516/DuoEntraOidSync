@@ -8,6 +8,7 @@ on:
       - '.gitignore'
       - 'LICENSE'
       - 'README.md'
+      - 'deploy/*.json'
   workflow_dispatch:
 
 env:
