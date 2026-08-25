@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionAppName": {
+      "value": "duo-oid-sync"
+    },
+    "duoIntegrationKey": {
+      "value": "DIXXXXXXXXXXXXXXXXXX"
+    },
+    "duoSecretKey": {
+      "value": "REPLACE-WITH-DUO-SECRET-KEY"
+    },
+    "duoApiHost": {
+      "value": "api-XXXXXXXX.duosecurity.com"
+    },
+    "duoUpnAliasSlot": {
+      "value": "alias1"
+    },
+    "duoOidAliasSlot": {
+      "value": "alias2"
+    },
+    "timerSchedule": {
+      "value": "0 30 * * * *"
+    },
+    "packageUri": {
+      "value": "https://github.com/rtm516/DuoEntraOidSync/releases/latest/download/DuoEntraOidSync.zip"
+    },
+    "dryRun": {
+      "value": true
+    }
+  }
+}
