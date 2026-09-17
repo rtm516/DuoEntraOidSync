@@ -8,8 +8,9 @@
     "functionAppName": {
       "type": "string",
       "defaultValue": "",
+      "maxLength": 16,
       "metadata": {
-        "description": "Name for the Function App. Leave blank to auto-generate a globally-unique name (duo-oid-sync-<hash>). Also used to derive the App Insights and plan names."
+        "description": "Base name for all resources (a 6-char unique hash is appended). Leave blank to use 'duooidsync'. Max 16 chars so the derived storage and Key Vault names stay within Azure's 24-char limit."
       }
     },
     "duoIntegrationKey": {
@@ -67,14 +68,17 @@
     }
   },
   "variables": {
-    "appName": "[if(empty(parameters('functionAppName')), format('duo-oid-sync-{0}', uniqueString(resourceGroup().id)), parameters('functionAppName'))]",
+    "baseName": "[if(empty(parameters('functionAppName')), 'duooidsync', parameters('functionAppName'))]",
+    "nameSuffix": "[substring(uniqueString(resourceGroup().id), 0, 6)]",
+    "namePrefix": "[toLower(replace(variables('baseName'), '-', ''))]",
+    "appName": "[concat(variables('namePrefix'), variables('nameSuffix'))]",
     "location": "[resourceGroup().location]",
-    "storageAccountName": "[toLower(concat('st', uniqueString(resourceGroup().id, variables('appName'))))]",
-    "keyVaultName": "[toLower(concat('kv-', uniqueString(resourceGroup().id, variables('appName'))))]",
-    "hostingPlanName": "[concat(variables('appName'), '-plan')]",
+    "storageAccountName": "[take(concat(variables('namePrefix'), 'st', variables('nameSuffix')), 24)]",
+    "keyVaultName": "[take(concat(variables('namePrefix'), 'kv', variables('nameSuffix')), 24)]",
+    "hostingPlanName": "[concat(variables('namePrefix'), 'pla', variables('nameSuffix'))]",
     "appInsightsName": "[variables('appName')]",
-    "logAnalyticsName": "[concat(variables('appName'), '-law')]",
-    "contentShareName": "[toLower(variables('appName'))]",
+    "logAnalyticsName": "[concat(variables('namePrefix'), 'law', variables('nameSuffix'))]",
+    "contentShareName": "[variables('appName')]",
     "duoIntegrationKeySecretName": "Duo-IntegrationKey",
     "duoSecretKeySecretName": "Duo-SecretKey",
     "keyVaultSecretsUserRoleId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]"
@@ -217,7 +221,7 @@
       "name": "[format('{0}/appsettings', variables('appName'))]",
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', variables('appName'))]",
-        "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.Web/sites', variables('appName')), variables('keyVaultSecretsUserRoleId')))]",
+        "[resourceId('Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.Web/sites', variables('appName')), variables('keyVaultSecretsUserRoleId')))]",
         "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('duoIntegrationKeySecretName'))]",
         "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('duoSecretKeySecretName'))]",
         "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",

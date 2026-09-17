@@ -66,7 +66,7 @@ All app settings (alias slots, schedule, dry-run, Duo host) are template paramet
 
 | Parameter | Default | Notes |
 |-----------|---------|-------|
-| `functionAppName` | `duo-oid-sync-<unique>` | Globally-unique app name. |
+| `functionAppName` | blank -> `duooidsync` | Base name for all resources (max 16 chars; a 6-char unique hash is appended). |
 | `duoIntegrationKey` | (required, secure) | Duo Admin API ikey -> Key Vault secret. |
 | `duoSecretKey` | (required, secure) | Duo Admin API skey -> Key Vault secret. |
 | `duoApiHost` | (required) | `api-XXXXXXXX.duosecurity.com` (no scheme). |
@@ -147,7 +147,7 @@ in the portal afterwards.
 | `Duo__ApiHost` | (required) | `api-XXXXXXXX.duosecurity.com` (no scheme). |
 | `Sync__DuoUpnAliasSlot` | `alias1` | Slot holding the UPN join key. |
 | `Sync__DuoOidAliasSlot` | `alias2` | Slot the oid is written to. Must differ from the UPN slot. |
-| `Sync__Schedule` | `0 30 * * * *` | NCRONTAB schedule for the `Sync` timer. |
+| `Sync__Schedule` | `0 30 * * * *` | NCRONTAB schedule for the `Sync` timer (referenced as `%Sync:Schedule%`). |
 | `Sync__DryRun` | `false` | When `true`, logs intended writes without calling Duo. |
 | `Sync__ManagedIdentityClientId` | (optional) | Set only for a *user-assigned* MI; omit for system-assigned. |
 
@@ -167,7 +167,7 @@ func start
 
 | Path | Purpose |
 |------|---------|
-| `SyncFunction.cs` | Timer trigger (`%Sync__Schedule%`). |
+| `SyncFunction.cs` | Timer trigger (`%Sync:Schedule%`). |
 | `Sync/SyncService.cs` | Join + idempotent-write logic, run stats. |
 | `Graph/EntraUserService.cs` | Builds the UPN/mail -> oid index via Graph. |
 | `Duo/DuoAdminClient.cs` | Hand-rolled HMAC-SHA1 signed Duo Admin API client. |
