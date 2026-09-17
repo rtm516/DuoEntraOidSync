@@ -23,6 +23,19 @@ users whose Duo `alias1` holds their real email - rather than the synthetic
 No webhooks/queues/subscriptions: Duo has no user-lifecycle webhooks and Duo
 directory sync is twice daily, so a periodic full pass is the model.
 
+## Prerequisites
+
+Create a Duo **Admin API** application (Duo Admin Panel -> Applications -> Protect an
+Application -> Admin API) and grant it these permissions under **Grant resource**:
+
+- **Grant read** - to list users (read `alias1` and the current oid slot).
+- **Grant write** - to write the oid into the target alias slot.
+
+Note the application's **integration key (ikey)**, **secret key (skey)**, and **API
+hostname** (`api-XXXXXXXX.duosecurity.com`) - these become the `duoIntegrationKey`,
+`duoSecretKey`, and `duoApiHost` deploy parameters. The ikey/skey are stored in Key Vault
+by the template; the app never sees them in plain app settings.
+
 ## Deploy to Azure
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Frtm516%2FDuoEntraOidSync%2Fmaster%2Fdeploy%2Fazuredeploy.json)
