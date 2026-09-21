@@ -221,7 +221,7 @@
       "name": "[format('{0}/appsettings', variables('appName'))]",
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', variables('appName'))]",
-        "[resourceId('Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.Web/sites', variables('appName')), variables('keyVaultSecretsUserRoleId')))]",
+        "[extensionResourceId(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), resourceId('Microsoft.Web/sites', variables('appName')), variables('keyVaultSecretsUserRoleId')))]",
         "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('duoIntegrationKeySecretName'))]",
         "[resourceId('Microsoft.KeyVault/vaults/secrets', variables('keyVaultName'), variables('duoSecretKeySecretName'))]",
         "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
