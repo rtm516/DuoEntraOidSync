@@ -1,4 +1,6 @@
+﻿using System.Diagnostics;
 using DuoEntraOidSync.Sync;
+using Microsoft.ApplicationInsights;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
@@ -7,11 +9,13 @@ namespace DuoEntraOidSync;
 public sealed class SyncFunction
 {
     private readonly SyncService _service;
+    private readonly TelemetryClient _telemetry;
     private readonly ILogger<SyncFunction> _logger;
 
-    public SyncFunction(SyncService service, ILogger<SyncFunction> logger)
+    public SyncFunction(SyncService service, TelemetryClient telemetry, ILogger<SyncFunction> logger)
     {
         _service = service;
+        _telemetry = telemetry;
         _logger = logger;
     }
 
@@ -37,6 +41,28 @@ public sealed class SyncFunction
             _logger.LogWarning("Sync timer is running past due.");
         }
 
-        await _service.RunAsync(cancellationToken);
+        var started = Stopwatch.GetTimestamp();
+        var result = await _service.RunAsync(cancellationToken);
+
+        // One custom event per run, so the outcome is queryable and chartable without
+        // parsing the summary trace. Counts go in metrics (numeric, aggregatable in KQL
+        // and usable as a metric alert); mode goes in properties for filtering.
+        _telemetry.TrackEvent(
+            "SyncCompleted",
+            properties: new Dictionary<string, string>
+            {
+                ["Mode"] = result.DryRun ? "dry-run" : "live",
+            },
+            metrics: new Dictionary<string, double>
+            {
+                ["DuoUsers"] = result.DuoUsers,
+                ["Matched"] = result.Matched,
+                ["Updated"] = result.Updated,
+                ["AlreadyCurrent"] = result.AlreadyCurrent,
+                ["Unmatched"] = result.Unmatched,
+                ["SkippedNoUpn"] = result.SkippedNoUpn,
+                ["Failed"] = result.Failed,
+                ["DurationSeconds"] = Stopwatch.GetElapsedTime(started).TotalSeconds,
+            });
     }
 }

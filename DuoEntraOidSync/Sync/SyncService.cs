@@ -1,4 +1,4 @@
-using DuoEntraOidSync.Configuration;
+﻿using DuoEntraOidSync.Configuration;
 using DuoEntraOidSync.Duo;
 using DuoEntraOidSync.Graph;
 using Microsoft.Extensions.Logging;
@@ -47,7 +47,7 @@ public sealed class SyncService
         var duoUsers = await _duo.ListUsersAsync(cancellationToken);
         _logger.LogInformation("Pulled {DuoCount} Duo users.", duoUsers.Count);
 
-        var result = new SyncResult { DuoUsers = duoUsers.Count };
+        var result = new SyncResult { DryRun = _sync.DryRun, DuoUsers = duoUsers.Count };
 
 #if DEBUG
         var noUpn = new List<string>();
@@ -132,6 +132,7 @@ public sealed class SyncService
 
 public sealed class SyncResult
 {
+    public bool DryRun { get; set; }
     public int DuoUsers { get; set; }
     public int Matched { get; set; }
     public int Updated { get; set; }

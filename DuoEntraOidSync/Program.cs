@@ -1,4 +1,4 @@
-using Azure.Identity;
+﻿using Azure.Identity;
 using DuoEntraOidSync.Configuration;
 using DuoEntraOidSync.Duo;
 using DuoEntraOidSync.Graph;
@@ -8,6 +8,7 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph;
 
@@ -15,9 +16,28 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
+// Adaptive sampling is on by default in the worker and is configured separately from
+// the host's samplingSettings in host.json. One run an hour is nowhere near the sampling
+// threshold, but the first live run can be, and that is the run whose record matters most.
 builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
+    .AddApplicationInsightsTelemetryWorkerService(options => options.EnableAdaptiveSampling = false)
     .ConfigureFunctionsApplicationInsights();
+
+// The App Insights logger provider registers a default filter rule that drops
+// anything below Warning, and ConfigureFunctionsApplicationInsights takes worker
+// logs off the host relay so host.json can't re-enable them. Without removing the
+// rule, every Information-level line below (including the per-user change log) is
+// discarded in the worker and never reaches App Insights.
+builder.Services.Configure<LoggerFilterOptions>(options =>
+{
+    var defaultRule = options.Rules.FirstOrDefault(rule =>
+        rule.ProviderName == "Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider");
+
+    if (defaultRule is not null)
+    {
+        options.Rules.Remove(defaultRule);
+    }
+});
 
 // Options.
 builder.Services.AddOptions<DuoOptions>()

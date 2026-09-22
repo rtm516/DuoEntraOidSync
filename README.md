@@ -101,11 +101,27 @@ New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $principalId -Princi
 ### 2. Verify with a dry run, then go live
 
 The app deploys with `dryRun=true`. Trigger a run (or wait for the schedule) and check
-App Insights -> Logs for the summary:
+App Insights -> Logs for the summary. Each run emits one `SyncCompleted` custom event
+carrying the run counts as metrics:
 
 ```kusto
-traces | where message startswith "Sync complete" | order by timestamp desc
+AppEvents
+| where Name == "SyncCompleted"
+| project TimeGenerated,
+          Mode           = tostring(Properties.Mode),
+          DuoUsers       = toint(Measurements.DuoUsers),
+          Matched        = toint(Measurements.Matched),
+          Updated        = toint(Measurements.Updated),
+          AlreadyCurrent = toint(Measurements.AlreadyCurrent),
+          Unmatched      = toint(Measurements.Unmatched),
+          NoUpn          = toint(Measurements.SkippedNoUpn),
+          Failed         = toint(Measurements.Failed),
+          Seconds        = round(todouble(Measurements.DurationSeconds), 1)
+| order by TimeGenerated desc
 ```
+
+(`AppEvents` is the workspace-based table name; the classic `customEvents` alias also
+works from the Application Insights **Logs** blade.)
 
 Confirm the `matched` / `unmatched` counts look right, and that the target alias slot
 isn't managed by **Duo directory sync** (see the warning below). Then set the
