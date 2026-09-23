@@ -52,6 +52,7 @@ public sealed class SyncFunction
             properties: new Dictionary<string, string>
             {
                 ["Mode"] = result.DryRun ? "dry-run" : "live",
+                ["Outcome"] = result.BudgetExpired ? "partial" : "complete",
             },
             metrics: new Dictionary<string, double>
             {
@@ -61,6 +62,7 @@ public sealed class SyncFunction
                 ["AlreadyCurrent"] = result.AlreadyCurrent,
                 ["Unmatched"] = result.Unmatched,
                 ["SkippedNoUpn"] = result.SkippedNoUpn,
+                ["Deferred"] = result.Deferred,
                 ["Failed"] = result.Failed,
                 ["DurationSeconds"] = Stopwatch.GetElapsedTime(started).TotalSeconds,
             });

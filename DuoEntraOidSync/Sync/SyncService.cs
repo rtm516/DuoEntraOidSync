@@ -1,4 +1,5 @@
-﻿using DuoEntraOidSync.Configuration;
+﻿using System.Diagnostics;
+using DuoEntraOidSync.Configuration;
 using DuoEntraOidSync.Duo;
 using DuoEntraOidSync.Graph;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,9 @@ public sealed class SyncService
 
     public async Task<SyncResult> RunAsync(CancellationToken cancellationToken)
     {
+        // From the top of the run, because functionTimeout is too: the pulls below spend
+        // the same budget the writes do.
+        var started = Stopwatch.GetTimestamp();
         var upnSlot = _sync.DuoUpnAliasSlot;
         var oidSlot = _sync.DuoOidAliasSlot;
 
@@ -48,6 +52,8 @@ public sealed class SyncService
         _logger.LogInformation("Pulled {DuoCount} Duo users.", duoUsers.Count);
 
         var result = new SyncResult { DryRun = _sync.DryRun, DuoUsers = duoUsers.Count };
+
+        var budget = _sync.TimeBudget > TimeSpan.Zero ? _sync.TimeBudget : (TimeSpan?)null;
 
 #if DEBUG
         var noUpn = new List<string>();
@@ -95,6 +101,22 @@ public sealed class SyncService
                 continue;
             }
 
+            // Out of time. Keep walking rather than breaking, so the counts below still
+            // describe the whole directory; the next run picks the deferred writes up.
+            if (budget is { } limit && Stopwatch.GetElapsedTime(started) >= limit)
+            {
+                if (!result.BudgetExpired)
+                {
+                    result.BudgetExpired = true;
+                    _logger.LogWarning(
+                        "Time budget of {Budget} exhausted after {Updated} update(s); deferring the remaining writes to the next run.",
+                        limit, result.Updated);
+                }
+
+                result.Deferred++;
+                continue;
+            }
+
             try
             {
                 await _duo.UpdateAliasAsync(user.UserId, oidSlot, oid, cancellationToken);
@@ -111,8 +133,9 @@ public sealed class SyncService
         }
 
         _logger.LogInformation(
-            "Sync complete. Duo users: {DuoUsers}, matched: {Matched}, updated: {Updated}, already current: {AlreadyCurrent}, unmatched: {Unmatched}, no UPN: {SkippedNoUpn}, failed: {Failed}.",
-            result.DuoUsers, result.Matched, result.Updated, result.AlreadyCurrent, result.Unmatched, result.SkippedNoUpn, result.Failed);
+            "Sync {Outcome}. Duo users: {DuoUsers}, matched: {Matched}, updated: {Updated}, already current: {AlreadyCurrent}, unmatched: {Unmatched}, no UPN: {SkippedNoUpn}, deferred: {Deferred}, failed: {Failed}.",
+            result.BudgetExpired ? "partial (out of time)" : "complete",
+            result.DuoUsers, result.Matched, result.Updated, result.AlreadyCurrent, result.Unmatched, result.SkippedNoUpn, result.Deferred, result.Failed);
 
 #if DEBUG
         if (noUpn.Count > 0)
@@ -140,4 +163,6 @@ public sealed class SyncResult
     public int Unmatched { get; set; }
     public int SkippedNoUpn { get; set; }
     public int Failed { get; set; }
+    public int Deferred { get; set; }
+    public bool BudgetExpired { get; set; }
 }

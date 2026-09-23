@@ -52,6 +52,13 @@
         "description": "When true, the function logs intended writes without calling Duo. Recommended for the first run."
       }
     },
+    "syncTimeBudget": {
+      "type": "string",
+      "defaultValue": "00:08:30",
+      "metadata": {
+        "description": "How long a run may spend before it stops issuing Duo writes and defers the rest to the next scheduled run, so it finishes cleanly instead of being killed by the host. Must stay below the 10-minute functionTimeout of the Consumption plan. Set to 00:00:00 to disable."
+      }
+    },
     "timerSchedule": {
       "type": "string",
       "defaultValue": "0 30 * * * *",
@@ -242,6 +249,7 @@
         "Sync__DuoOidAliasSlot": "[parameters('duoOidAliasSlot')]",
         "Sync__Schedule": "[parameters('timerSchedule')]",
         "Sync__DryRun": "[if(parameters('dryRun'), 'true', 'false')]",
+        "Sync__TimeBudget": "[parameters('syncTimeBudget')]",
         "Sync__ManagedIdentityClientId": ""
       }
     }

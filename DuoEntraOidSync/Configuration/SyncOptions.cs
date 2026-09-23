@@ -25,6 +25,13 @@ public sealed class SyncOptions
     public bool DryRun { get; set; }
 
     /// <summary>
+    /// How long a run may spend before it stops issuing Duo writes and defers the rest
+    /// to the next run. Keep it below host.json's functionTimeout so the run ends on its
+    /// own terms rather than being killed mid-loop. Zero or negative disables it.
+    /// </summary>
+    public TimeSpan TimeBudget { get; set; } = TimeSpan.FromMinutes(8.5);
+
+    /// <summary>
     /// Client id of the user-assigned managed identity to authenticate to Graph.
     /// Leave null to use the system-assigned identity (or local dev credentials).
     /// </summary>

@@ -23,6 +23,25 @@ users whose Duo `alias1` holds their real email - rather than the synthetic
 No webhooks/queues/subscriptions: Duo has no user-lifecycle webhooks and Duo
 directory sync is twice daily, so a periodic full pass is the model.
 
+### Run length
+
+Duo writes are serial and rate-limited, so a first-time backfill across a large
+directory takes far longer than a steady-state run, where almost every user is
+already current and nothing is written.
+
+The Consumption plan caps a single execution at 10 minutes (`functionTimeout` in
+`host.json`). To avoid being killed mid-loop, a run stops issuing writes once
+`Sync__TimeBudget` (default 8m30s) is spent, counts the rest as **deferred**, and
+finishes normally - logging its summary and emitting `SyncCompleted` with
+`Outcome = partial`. Because writes are idempotent and already-current users are
+skipped, the next scheduled run continues the backlog. A backfill therefore drains
+over consecutive runs and then settles into short complete runs.
+
+If `Outcome` stays `partial` run after run, the directory is changing faster than one
+run can absorb: shorten the schedule, or move off Consumption (Flex Consumption or
+Elastic Premium allow 30+ minute executions) and raise both `functionTimeout` and
+`Sync__TimeBudget`.
+
 ## Prerequisites
 
 Create a Duo **Admin API** application (Duo Admin Panel -> Applications -> Protect an
@@ -73,6 +92,7 @@ All app settings (alias slots, schedule, dry-run, Duo host) are template paramet
 | `duoUpnAliasSlot` | `alias1` | Slot holding the UPN join key. |
 | `duoOidAliasSlot` | `alias2` | Slot the oid is written to. Must differ from the UPN slot. |
 | `timerSchedule` | `0 30 * * * *` | NCRONTAB schedule for the run. |
+| `syncTimeBudget` | `00:08:30` | Time a run may spend before it stops writing and defers the rest to the next run. Must stay under the 10-minute `functionTimeout`. `00:00:00` disables it. |
 | `packageUri` | latest GitHub release zip | Built function package the app runs from. Override to pin a version or use your own build. |
 | `dryRun` | `true` | Logs intended writes without calling Duo. Leave on for the first run. |
 
@@ -165,6 +185,7 @@ in the portal afterwards.
 | `Sync__DuoOidAliasSlot` | `alias2` | Slot the oid is written to. Must differ from the UPN slot. |
 | `Sync__Schedule` | `0 30 * * * *` | NCRONTAB schedule for the `Sync` timer (referenced as `%Sync:Schedule%`). |
 | `Sync__DryRun` | `false` | When `true`, logs intended writes without calling Duo. |
+| `Sync__TimeBudget` | `00:08:30` | Run stops issuing Duo writes past this point and defers the remainder to the next run. Keep it below `functionTimeout` in `host.json`. `00:00:00` disables it. |
 | `Sync__ManagedIdentityClientId` | (optional) | Set only for a *user-assigned* MI; omit for system-assigned. |
 
 ## Local development
