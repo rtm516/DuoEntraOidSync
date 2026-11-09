@@ -216,8 +216,5 @@ public sealed class DuoAdminClient
     {
         [JsonPropertyName("next_offset")]
         public int? NextOffset { get; set; }
-
-        [JsonPropertyName("total_objects")]
-        public int? TotalObjects { get; set; }
     }
 }

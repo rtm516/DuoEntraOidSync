@@ -21,9 +21,9 @@ public sealed class SyncFunction
 
     /// <summary>
     /// Syncs Entra oids into the Duo oid alias slot on the schedule in the
-    /// "Sync__Schedule" app setting (default "0 30 * * * *" — half past every hour).
-    /// The %...% expression uses the config-key form "Sync:Schedule": configuration
-    /// binding remaps the "Sync__Schedule" app setting / env var onto that key.
+    /// "Sync__Schedule" app setting. The %...% expression uses the config-key form
+    /// "Sync:Schedule": configuration binding remaps the "Sync__Schedule" app setting
+    /// / env var onto that key.
     /// </summary>
     [Function("Sync")]
     public async Task Run(
@@ -52,7 +52,7 @@ public sealed class SyncFunction
             properties: new Dictionary<string, string>
             {
                 ["Mode"] = result.DryRun ? "dry-run" : "live",
-                ["Outcome"] = result.BudgetExpired ? "partial" : "complete",
+                ["Outcome"] = result.Outcome,
             },
             metrics: new Dictionary<string, double>
             {

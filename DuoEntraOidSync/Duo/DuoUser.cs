@@ -13,9 +13,6 @@ public sealed class DuoUser
     [JsonPropertyName("username")]
     public string Username { get; set; } = string.Empty;
 
-    [JsonPropertyName("email")]
-    public string? Email { get; set; }
-
     /// <summary>
     /// Alias slots as a dictionary, e.g. {"alias1": "joe@x.com", "alias4": "&lt;oid&gt;"}.
     /// Slots that are unset are omitted by the API.

@@ -55,11 +55,6 @@ public sealed class SyncService
 
         var budget = _sync.TimeBudget > TimeSpan.Zero ? _sync.TimeBudget : (TimeSpan?)null;
 
-#if DEBUG
-        var noUpn = new List<string>();
-        var unmatched = new List<string>();
-#endif
-
         foreach (var user in duoUsers)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -68,18 +63,14 @@ public sealed class SyncService
             if (string.IsNullOrEmpty(upn))
             {
                 result.SkippedNoUpn++;
-#if DEBUG
-                noUpn.Add($"{user.UserId} ({user.Username})");
-#endif
+                _logger.LogDebug("Duo user {UserId} ({Username}) has no UPN in {Slot}.", user.UserId, user.Username, upnSlot);
                 continue;
             }
 
             if (!entraIndex.TryGetValue(upn, out var oid))
             {
                 result.Unmatched++;
-#if DEBUG
-                unmatched.Add($"{user.UserId} ({user.Username}) UPN '{upn}'");
-#endif
+                _logger.LogDebug("Duo user {UserId} ({Username}) UPN '{Upn}' not found in the Entra index.", user.UserId, user.Username, upn);
                 continue;
             }
 
@@ -92,18 +83,10 @@ public sealed class SyncService
                 continue;
             }
 
-            if (_sync.DryRun)
-            {
-                result.Updated++;
-                _logger.LogInformation(
-                    "[dry-run] Would set {Slot}={Oid} on Duo user {UserId} (UPN {Upn}, was '{Current}').",
-                    oidSlot, oid, user.UserId, upn, current ?? "<unset>");
-                continue;
-            }
-
             // Out of time. Keep walking rather than breaking, so the counts below still
             // describe the whole directory; the next run picks the deferred writes up.
-            if (budget is { } limit && Stopwatch.GetElapsedTime(started) >= limit)
+            // Dry runs issue no writes, so they are never rate-limited and never defer.
+            if (!_sync.DryRun && budget is { } limit && Stopwatch.GetElapsedTime(started) >= limit)
             {
                 if (!result.BudgetExpired)
                 {
@@ -119,10 +102,15 @@ public sealed class SyncService
 
             try
             {
-                await _duo.UpdateAliasAsync(user.UserId, oidSlot, oid, cancellationToken);
+                if (!_sync.DryRun)
+                {
+                    await _duo.UpdateAliasAsync(user.UserId, oidSlot, oid, cancellationToken);
+                }
+
                 result.Updated++;
                 _logger.LogInformation(
-                    "Set {Slot}={Oid} on Duo user {UserId} (UPN {Upn}, was '{Current}').",
+                    "{Action}{Slot}={Oid} on Duo user {UserId} (UPN {Upn}, was '{Current}').",
+                    _sync.DryRun ? "[dry-run] Would set " : "Set ",
                     oidSlot, oid, user.UserId, upn, current ?? "<unset>");
             }
             catch (DuoApiException ex)
@@ -134,20 +122,8 @@ public sealed class SyncService
 
         _logger.LogInformation(
             "Sync {Outcome}. Duo users: {DuoUsers}, matched: {Matched}, updated: {Updated}, already current: {AlreadyCurrent}, unmatched: {Unmatched}, no UPN: {SkippedNoUpn}, deferred: {Deferred}, failed: {Failed}.",
-            result.BudgetExpired ? "partial (out of time)" : "complete",
+            result.Outcome,
             result.DuoUsers, result.Matched, result.Updated, result.AlreadyCurrent, result.Unmatched, result.SkippedNoUpn, result.Deferred, result.Failed);
-
-#if DEBUG
-        if (noUpn.Count > 0)
-        {
-            _logger.LogInformation("No UPN ({Count}):\n  {List}", noUpn.Count, string.Join("\n  ", noUpn));
-        }
-
-        if (unmatched.Count > 0)
-        {
-            _logger.LogInformation("Unmatched ({Count}):\n  {List}", unmatched.Count, string.Join("\n  ", unmatched));
-        }
-#endif
 
         return result;
     }
@@ -165,4 +141,6 @@ public sealed class SyncResult
     public int Failed { get; set; }
     public int Deferred { get; set; }
     public bool BudgetExpired { get; set; }
+
+    public string Outcome => BudgetExpired ? "partial" : "complete";
 }

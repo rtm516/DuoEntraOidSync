@@ -9,13 +9,12 @@ public sealed class SyncOptions
 
     /// <summary>
     /// Duo alias slot holding the UPN (the join key looked up in Entra).
-    /// Defaults to alias1.
     /// </summary>
     public string DuoUpnAliasSlot { get; set; } = "alias1";
 
     /// <summary>
     /// Duo alias slot the Entra object id (oid) is written into.
-    /// Defaults to alias4. Must differ from <see cref="DuoUpnAliasSlot"/>.
+    /// Must differ from <see cref="DuoUpnAliasSlot"/>.
     /// </summary>
     public string DuoOidAliasSlot { get; set; } = "alias2";
 
