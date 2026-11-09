@@ -252,6 +252,24 @@
         "Sync__TimeBudget": "[parameters('syncTimeBudget')]",
         "Sync__ManagedIdentityClientId": ""
       }
+    },
+    {
+      "type": "Microsoft.Insights/workbooks",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.Insights/components', variables('appInsightsName')), 'SyncEventsWorkbook')]",
+      "location": "[variables('location')]",
+      "kind": "shared",
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+        "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+      ],
+      "properties": {
+        "displayName": "Sync Events",
+        "serializedData": "[concat('{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":{\"json\":\"## Sync Events\\nThese are the last 7 days of sync events ran by the Entra OID -> Duo sync tool\"},\"name\":\"text - 2\"},{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"AppEvents\\n| where Name == \\\"SyncCompleted\\\"\\n| project TimeGenerated, Updated = toint(Measurements.Updated), Failed = toint(Measurements.Failed), Unmatched = toint(Measurements.Unmatched)\\n| render timechart\",\"size\":1,\"aggregation\":2,\"timeContext\":{\"durationMs\":604800000},\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"crossComponentResources\":[\"', resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '\"],\"chartSettings\":{\"seriesLabelSettings\":[{\"seriesName\":\"Updated\",\"color\":\"green\"},{\"seriesName\":\"Failed\",\"color\":\"redBright\"},{\"seriesName\":\"Unmatched\",\"color\":\"orange\"}]}},\"name\":\"query - 2\"},{\"type\":3,\"content\":{\"version\":\"KqlItem/1.0\",\"query\":\"AppEvents\\r\\n| where Name == \\\"SyncCompleted\\\"\\r\\n| project TimeGenerated,\\r\\n          Mode           = tostring(Properties.Mode),\\r\\n          DuoUsers       = toint(Measurements.DuoUsers),\\r\\n          Matched        = toint(Measurements.Matched),\\r\\n          Updated        = toint(Measurements.Updated),\\r\\n          AlreadyCurrent = toint(Measurements.AlreadyCurrent),\\r\\n          Unmatched      = toint(Measurements.Unmatched),\\r\\n          NoUpn          = toint(Measurements.SkippedNoUpn),\\r\\n          Failed         = toint(Measurements.Failed),\\r\\n          Seconds        = round(todouble(Measurements.DurationSeconds), 1)\\r\\n| order by TimeGenerated desc\",\"size\":0,\"timeContext\":{\"durationMs\":604800000},\"queryType\":0,\"resourceType\":\"microsoft.operationalinsights/workspaces\",\"crossComponentResources\":[\"', resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '\"]},\"name\":\"query - 2\"}],\"isLocked\":false,\"fallbackResourceIds\":[\"', resourceId('Microsoft.Insights/components', variables('appInsightsName')), '\"]}')]",
+        "version": "1.0",
+        "sourceId": "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+        "category": "workbook"
+      }
     }
   ],
   "outputs": {

@@ -75,6 +75,9 @@ example parameters file at [`deploy/azuredeploy.parameters.json`](deploy/azurede
   resolve with no manual step.
 - **Function code** is pulled from `packageUri` (a published release zip) via
   run-from-package, so the deploy includes the app - no separate code push.
+- **"Sync Events" Azure Monitor workbook** on the App Insights component, charting the
+  last 7 days of `SyncCompleted` runs and a per-run detail table, wired to the deployed
+  workspace automatically.
 
 All app settings (alias slots, schedule, dry-run, Duo host) are template parameters.
 
@@ -142,6 +145,9 @@ AppEvents
 
 (`AppEvents` is the workspace-based table name; the classic `customEvents` alias also
 works from the Application Insights **Logs** blade.)
+
+The template also deploys a **Sync Events** workbook (App Insights -> **Workbooks** ->
+*Sync Events*) that runs this query and a 7-day trend chart for a quick at-a-glance view.
 
 Confirm the `matched` / `unmatched` counts look right, and that the target alias slot
 isn't managed by **Duo directory sync** (see the warning below). Then set the
